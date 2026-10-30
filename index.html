@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คมคม บาคาร่า 04</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #0a0a0c;
+            --border-color: #1f1f23;
+            --text-main: #ffffff;
+            --text-muted: #8e8e93;
+            --player-color: #0055ff;
+            --banker-color: #ff3b30;
+            --tie-color: #34c759;
+            --accent-green: #00f2fe;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .badge-mode {
+            background: #1c1c1e;
+            color: #ffd60a;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid #2c2c2e;
+        }
+
+        .badge-theme {
+            background: #1c1c1e;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid #2c2c2e;
+            cursor: pointer;
+        }
+
+        .target-win-display {
+            text-align: center;
+            font-size: 11px;
+            color: #34c759;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .predictor-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .main-circle {
+            width: 95px;
+            height: 95px;
+            border-radius: 50%;
+            background: #121215;
+            border: 3px solid #2c2c2e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            transition: 0.3s;
+            margin-bottom: 6px;
+        }
+
+        .main-circle.player-glow { border-color: var(--player-color); box-shadow: 0 0 20px rgba(0, 85, 255, 0.4); }
+        .main-circle.banker-glow { border-color: var(--banker-color); box-shadow: 0 0 20px rgba(255, 59, 48, 0.4); }
+        .main-circle.waiting-glow { border-color: #ff9500; }
+
+        .circle-text { font-size: 15px; font-weight: bold; }
+        .circle-sub { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+        .status-info-text { font-size: 11px; color: var(--text-muted); text-align: center; margin-bottom: 6px; }
+
+        .confidence-wrapper {
+            width: 100%;
+            background: #121215;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        .conf-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .confidence-bar-container {
+            background-color: #2c2c2e;
+            border-radius: 4px;
+            height: 6px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .confidence-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff9500, var(--accent-green));
+            transition: width 0.3s ease;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        /* ตารางกริด 6 แถวแนวตั้งแบบแท้จริง */
+        .hk-board {
+            background: #121215;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            margin-bottom: 15px;
+            height: 150px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            gap: 3px;
+            align-items: flex-start;
+        }
+
+        .hk-column {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 20px;
+        }
+
+        .hk-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+            flex-shrink: 0;
+        }
+        .dot-p { background-color: var(--player-color); }
+        .dot-b { background-color: var(--banker-color); }
+        .dot-t { background-color: var(--tie-color); }
+
+        .empty-board-text {
+            color: #48484a;
+            font-size: 12px;
+            margin: auto;
+            text-align: center;
+            width: 100%;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .btn-action {
+            padding: 15px 0;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn-p { background-color: var(--player-color); }
+        .btn-t { background-color: var(--tie-color); }
+        .btn-b { background-color: var(--banker-color); }
+        .btn-action:active { transform: scale(0.95); opacity: 0.8; }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn-ctrl {
+            background-color: #1c1c1e;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 10px 0;
+            font-size: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-ctrl:active { background-color: #2c2c2e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="top-bar">
+        <div class="badge-mode">⚡ 3 ไม้ / ล่า 2 วิน (True 6-Row Grid)</div>
+        <div class="badge-theme" onclick="resetGame()">🔄 รีเซ็ต</div>
+    </div>
+
+    <div class="target-win-display" id="targetWinText">
+        🎯 เป้าหมายวินห้องนี้: [ ⚪ | ⚪ ] (ชนะแล้ว 0/2 วิน)
+    </div>
+
+    <div class="predictor-container">
+        <div class="main-circle waiting-glow" id="mainCircle">
+            <div class="circle-text" id="circleMainText">รอ...</div>
+            <div class="circle-sub" id="circleSubText">ไม้ที่ 1</div>
+        </div>
+        <div class="status-info-text" id="statusInfoText">⏳ สมองกลกำลังอ่านขอนไพ่ (กรองความถี่)</div>
+    </div>
+
+    <div class="confidence-wrapper">
+        <div class="conf-header">
+            <span>ระดับความมั่นใจ (Human Sense)</span>
+            <span id="confPercent" style="color: #fff; font-weight: bold;">0%</span>
+        </div>
+        <div class="confidence-bar-container">
+            <div class="confidence-bar" id="confBar"></div>
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <div>P:<span id="pCount">0</span> T:<span id="tCount">0</span> B:<span id="bCount">0</span></div>
+        <div>📜 ประวัติ: <span id="histCount">0</span> ตา</div>
+    </div>
+
+    <!-- ตารางกริด 6 แถวแท้จริง -->
+    <div class="hk-board" id="hkBoard">
+        <div class="empty-board-text">ยังไม่มีผลลัพธ์ในขอนนี้</div>
+    </div>
+
+    <div class="action-grid">
+        <button class="btn-action btn-p" onclick="recordResult('P')">P</button>
+        <button class="btn-action btn-t" onclick="recordResult('T')">T</button>
+        <button class="btn-action btn-b" onclick="recordResult('B')">B</button>
+    </div>
+
+    <div class="control-grid">
+        <button class="btn-ctrl" onclick="undoLast()">ย้อนกลับตาเดียว</button>
+        <button class="btn-ctrl" style="color: #ff3b30;" onclick="resetGame()">ล้างทั้งหมด</button>
+    </div>
+</div>
+
+<script>
+    let historyArr = [];
+    let currentStep = 1; 
+    let winCount = 0;    
+    let stats = { P: 0, T: 0, B: 0 };
+    let isWaitingForSignal = true; 
+    let targetBet = null; 
+    let currentConfidence = 0;
+    let waitCounter = 0; 
+
+    const multiplier = [1, 2, 4];
+
+    function recordResult(result) {
+        if(result === 'T') {
+            stats.T++;
+            historyArr.push('T'); 
+            updateUI();
+            return;
+        }
+
+        historyArr.push(result);
+        stats[result]++;
+
+        if (!isWaitingForSignal) {
+            if (targetBet === result) {
+                winCount++;
+                currentStep = 1; 
+                isWaitingForSignal = true; 
+                waitCounter = 2; 
+                evaluateBrain();
+                updateUI();
+
+                if (winCount >= 2) {
+                    alert(`🏆 เยี่ยมมาก! ครบเป้าหมาย 2 วินแล้ว ➔ แนะนำย้ายโต๊ะทันที`);
+                } else {
+                    alert(`🎉 ได้ 1 วินแรกแล้ว! (1/2) ➔ พักรอดูจังหวะหาไม้ 2 ต่อไป`);
+                }
+                return;
+            } else {
+                currentStep++;
+                if (currentStep > 3) {
+                    alert(`⚠️ ผิดครบ 3 ไม้แล้ว! ➔ หยุดพักหรือเปลี่ยนโต๊ะด่วน`);
+                    resetGame();
+                    return;
+                }
+            }
+        }
+
+        evaluateBrain();
+        updateUI();
+    }
+
+    function evaluateBrain() {
+        if (winCount >= 2) {
+            isWaitingForSignal = true;
+            targetBet = null;
+            currentConfidence = 0;
+            return;
+        }
+
+        if (waitCounter > 0) {
+            waitCounter--;
+            isWaitingForSignal = true;
+            targetBet = null;
+            currentConfidence = 25;
+            return;
+        }
+
+        let pure = historyArr.filter(x => x === 'P' || x === 'B');
+        if (pure.length < 5) {
+            isWaitingForSignal = true;
+            targetBet = null;
+            currentConfidence = 30;
+            return;
+        }
+
+        let l1 = pure[pure.length - 1];
+        let l2 = pure[pure.length - 2];
+        let l3 = pure[pure.length - 3];
+        let l4 = pure[pure.length - 4];
+
+        if (l1 === l2 && l2 === l3 && l3 === l4) {
+            isWaitingForSignal = false;
+            targetBet = l1;
+            currentConfidence = 92;
+            return;
+        }
+
+        if (l1 !== l2 && l2 !== l3 && l3 !== l4) {
+            isWaitingForSignal = false;
+            targetBet = (l1 === 'P') ? 'B' : 'P';
+            currentConfidence = 85;
+            return;
+        }
+
+        isWaitingForSignal = true;
+        targetBet = null;
+        currentConfidence = 40;
+    }
+
+    function updateUI() {
+        document.getElementById('pCount').innerText = stats.P;
+        document.getElementById('tCount').innerText = stats.T;
+        document.getElementById('bCount').innerText = stats.B;
+        document.getElementById('histCount').innerText = historyArr.length;
+
+        document.getElementById('confPercent').innerText = currentConfidence + "%";
+        document.getElementById('confBar').style.width = currentConfidence + "%";
+
+        let dot1 = winCount >= 1 ? "🟢" : "⚪";
+        let dot2 = winCount >= 2 ? "🟢" : "⚪";
+        document.getElementById('targetWinText').innerHTML = `🎯 เป้าหมายวินห้องนี้: [ ${dot1} | ${dot2} ] (ชนะแล้ว ${winCount}/2 วิน)`;
+
+        // ระบบจัดเรียงตาราง True 6-Row Grid แบบคาสิโนจริง (เรียงลงแนวตั้งครบ 6 ตัว แล้วขึ้นคอลัมน์ใหม่ทันที)
+        let board = document.getElementById('hkBoard');
+        if (historyArr.length === 0) {
+            board.innerHTML = `<div class="empty-board-text">ยังไม่มีผลลัพธ์ในขอนนี้</div>`;
+        } else {
+            let gridColumns = [[]];
+            let currentColIdx = 0;
+
+            historyArr.forEach(item => {
+                if (gridColumns[currentColIdx].length >= 6) {
+                    currentColIdx++;
+                    gridColumns[currentColIdx] = [];
+                }
+                gridColumns[currentColIdx].push(item);
+            });
+
+            let html = '';
+            gridColumns.forEach(col => {
+                html += `<div class="hk-column">`;
+                col.forEach(cell => {
+                    let cls = cell === 'P' ? 'dot-p' : (cell === 'B' ? 'dot-b' : 'dot-t');
+                    html += `<div class="hk-dot ${cls}">${cell}</div>`;
+                });
+                html += `</div>`;
+            });
+            board.innerHTML = html;
+            board.scrollLeft = board.scrollWidth;
+        }
+
+        let circle = document.getElementById('mainCircle');
+        let mainText = document.getElementById('circleMainText');
+        let subText = document.getElementById('circleSubText');
+        let infoText = document.getElementById('statusInfoText');
+
+        if (winCount >= 2) {
+            circle.className = "main-circle player-glow";
+            mainText.innerText = "COMPLETED";
+            subText.innerText = "2 WINS";
+            infoText.innerText = "🎯 สำเร็จครบ 2 วินแล้ว ย้ายโต๊ะได้!";
+            return;
+        }
+
+        if (isWaitingForSignal) {
+            circle.className = "main-circle waiting-glow";
+            mainText.innerText = "WAIT";
+            subText.innerText = `ไม้ ${currentStep} (${multiplier[currentStep-1]}x)`;
+            infoText.innerText = "⏳ สมองกลวิเคราะห์เชิงลึก: นั่งทับมือรอดูก่อน";
+        } else {
+            circle.className = targetBet === 'P' ? "main-circle player-glow" : "main-circle banker-glow";
+            mainText.innerText = targetBet === 'P' ? "PLAYER" : "BANKER";
+            subText.innerText = `ไม้ที่ ${currentStep} (${multiplier[currentStep-1]} หน่วย)`;
+            infoText.innerText = `👉 จังหวะชัวร์ตามเซนส์มนุษย์! แนะนำแทง ${targetBet === 'P' ? 'PLAYER' : 'BANKER'}`;
+        }
+    }
+
+    function undoLast() {
+        if (historyArr.length === 0) return;
+        let removed = historyArr.pop();
+        if(stats[removed] > 0) stats[removed]--;
+        evaluateBrain();
+        updateUI();
+    }
+
+    function resetGame() {
+        historyArr = [];
+        currentStep = 1;
+        winCount = 0;
+        stats = { P: 0, T: 0, B: 0 };
+        isWaitingForSignal = true;
+        targetBet = null;
+        currentConfidence = 0;
+        waitCounter = 0;
+        updateUI();
+    }
+
+    updateUI();
+</script>
+
+</body>
+</html>
